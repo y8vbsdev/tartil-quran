@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ترتيل قران</title>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; width: 100%; max-width: 500px; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        h1 { color: #0f172a; font-size: 22px; margin-bottom: 20px; }
+        .select-box { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 15px; outline: none; background: #fff; cursor: pointer; }
+        .ayah-box { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; font-size: 22px; font-weight: bold; color: #1e293b; line-height: 1.8; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+        .nav-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-nav { background: #e2e8f0; color: #334155; border: none; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; flex: 1; transition: background 0.2s; }
+        .btn-nav:hover { background: #cbd5e1; }
+        .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn { background: #2563eb; color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.2s; width: 100%; }
+        .btn:hover { background: #1d4ed8; }
+        .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .btn.recording { background: #dc2626; }
+        .status { margin-top: 15px; font-size: 15px; font-weight: 600; color: #475569; }
+        .result { margin-top: 10px; font-size: 14px; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>ترتيل قران</h1>
+        
+        <!-- قائمة اختيار السورة -->
+        <select id="surah-select" class="select-box">
+            <option value="">اختر السورة...</option>
+        </select>
+
+        <!-- عرض نص الآية -->
+        <div id="ayah-display" class="ayah-box">اختر سورة للبدء</div>
+
+        <!-- أزرار التنقل بين الآيات -->
+        <div class="nav-controls">
+            <button id="prev-ayah-btn" class="btn-nav" disabled>الآية السابقة</button>
+            <button id="next-ayah-btn" class="btn-nav" disabled>الآية التالية</button>
+        </div>
+        
+        <!-- زر تسجيل الصوت -->
+        <button id="record-btn" class="btn" disabled>ابدأ القراءة</button>
+        
+        <div id="status" class="status">جاري تهيئة نموذج الذكاء الاصطناعي...</div>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
