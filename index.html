@@ -3,50 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ترتيل قران</title>
+    <title>ترتيل القرآن</title>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #f1f5f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: white; width: 100%; max-width: 500px; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
-        h1 { color: #0f172a; font-size: 22px; margin-bottom: 20px; }
-        .select-box { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 15px; outline: none; background: #fff; cursor: pointer; }
-        .ayah-box { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; font-size: 22px; font-weight: bold; color: #1e293b; line-height: 1.8; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+        :root {
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --sub-text: #64748b;
+            --border-color: #e2e8f0;
+            --item-bg: #f8fafc;
+            --item-hover: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --counter-bg: #0f172a;
+            --counter-text: #38bdf8;
+        }
+
+        /* متغيرات الوضع الداكن (Dark Theme) */
+        body.dark-theme {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --sub-text: #94a3b8;
+            --border-color: #334155;
+            --item-bg: #334155;
+            --item-hover: #475569;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --counter-bg: #0284c7;
+            --counter-text: #ffffff;
+        }
+
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        body { background: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; padding-top: 80px; padding-bottom: 80px; }
+        
+        /* الشريط العلوي Top Header Bar */
+        .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1000; }
+        .app-title { font-size: 18px; font-weight: bold; color: var(--primary); margin: 0; }
+        .top-actions { display: flex; gap: 10px; align-items: center; }
+        .icon-btn { background: var(--item-bg); border: 1px solid var(--border-color); color: var(--text-color); font-size: 16px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .icon-btn:hover { background: var(--item-hover); }
+
+        .card { background: var(--card-bg); width: 100%; max-width: 500px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        h1, h2 { color: var(--text-color); font-size: 22px; margin-bottom: 20px; margin-top: 0; }
+        
+        /* قائمة السور */
+        .surah-list { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; text-align: right; }
+        .surah-item { background: var(--item-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px; font-size: 16px; font-weight: 600; color: var(--text-color); display: flex; justify-content: space-between; align-items: center; position: relative; }
+        .surah-info-clickable { flex: 1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* قائمة الخيارات المنسدلة */
+        .menu-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--sub-text); padding: 4px 10px; border-radius: 6px; }
+        .menu-btn:hover { background: var(--item-hover); color: var(--text-color); }
+        .dropdown-menu { display: none; position: absolute; left: 10px; top: 45px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; width: 150px; text-align: right; overflow: hidden; }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item { padding: 10px 14px; font-size: 14px; color: var(--text-color); cursor: pointer; }
+        .dropdown-item:hover { background: var(--item-hover); color: var(--primary); }
+
+        /* النوافذ المنبثقة Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--card-bg); color: var(--text-color); width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; text-align: right; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: popIn 0.2s ease-out; }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; }
+        .modal-header h3 { margin: 0; color: var(--text-color); }
+        .close-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--sub-text); }
+        .info-row { margin-bottom: 12px; font-size: 15px; color: var(--text-color); }
+        .info-row span { font-weight: bold; color: var(--primary); }
+
+        /* القراءة والتسميع */
+        .quran-view { display: none; }
+        .back-btn { background: var(--item-hover); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: inline-block; }
+        .ayah-box { background: var(--item-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 15px; font-size: 22px; font-weight: bold; color: var(--text-color); line-height: 1.8; min-height: 100px; display: flex; align-items: center; justify-content: center; }
         .nav-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .btn-nav { background: #e2e8f0; color: #334155; border: none; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; flex: 1; transition: background 0.2s; }
-        .btn-nav:hover { background: #cbd5e1; }
+        .btn-nav { background: var(--item-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; flex: 1; }
+        .btn-nav:hover { background: var(--item-hover); }
         .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn { background: #2563eb; color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 10px; cursor: pointer; transition: all 0.2s; width: 100%; }
-        .btn:hover { background: #1d4ed8; }
-        .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .btn { background: var(--primary); color: white; border: none; padding: 14px 28px; font-size: 16px; font-weight: 600; border-radius: 10px; cursor: pointer; width: 100%; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn:disabled { background: var(--border-color); cursor: not-allowed; }
         .btn.recording { background: #dc2626; }
-        .status { margin-top: 15px; font-size: 15px; font-weight: 600; color: #475569; }
-        .result { margin-top: 10px; font-size: 14px; color: #64748b; }
+        .status { margin-top: 15px; font-size: 15px; font-weight: 600; color: var(--sub-text); }
+        .result { margin-top: 10px; font-size: 14px; color: var(--sub-text); }
+
+        /* المسبحة */
+        .tasbeeh-page { display: none; }
+        .select-box { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 15px; outline: none; background: var(--card-bg); color: var(--text-color); cursor: pointer; }
+        .counter-box { background: var(--counter-bg); color: var(--counter-text); font-size: 48px; font-weight: bold; border-radius: 12px; padding: 15px; margin-bottom: 15px; font-family: monospace; }
+        .tasbeeh-controls { display: flex; gap: 10px; }
+        .btn-tasbeeh { background: #10b981; color: white; border: none; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; flex: 2; }
+        .btn-tasbeeh:hover { background: #059669; }
+        .btn-reset { background: #ef4444; color: white; border: none; padding: 16px; font-size: 14px; font-weight: bold; border-radius: 10px; cursor: pointer; flex: 1; }
+        .btn-reset:hover { background: #dc2626; }
+
+        /* شريط التنقل السفلي والخط */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); z-index: 1000; }
+        .nav-item { border: none; background: none; font-size: 15px; font-weight: bold; color: var(--sub-text); cursor: pointer; padding: 10px 20px; border-radius: 8px; flex: 1; height: 100%; z-index: 1; }
+        .nav-item.active { color: var(--primary); }
+        .nav-indicator { position: absolute; bottom: 0; height: 4px; background: var(--primary); border-radius: 4px 4px 0 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>ترتيل قران</h1>
+    <!-- الشريط العلوي -->
+    <header class="top-bar">
+        <h1 class="app-title">ترتيل قرآن</h1>
+        <div class="top-actions">
+            <button id="theme-toggle-btn" class="icon-btn">🌙 الأسود</button>
+            <button id="developer-btn" class="icon-btn">👨‍💻 المطور</button>
+        </div>
+    </header>
+
+    <!-- الرئيسية -->
+    <div id="home-page" class="card">
+        <div id="surah-list-view">
+            <h1>الرئيسية - قائمة السور</h1>
+            <div id="surah-list" class="surah-list">
+                <div>جاري تحميل السور...</div>
+            </div>
+        </div>
+
+        <div id="quran-view" class="quran-view">
+            <button id="back-to-list-btn" class="back-btn">← العودة لقائمة السور</button>
+            <h2 id="current-surah-title">سورة</h2>
+            <div id="ayah-display" class="ayah-box"></div>
+
+            <div class="nav-controls">
+                <button id="prev-ayah-btn" class="btn-nav" disabled>الآية السابقة</button>
+                <button id="next-ayah-btn" class="btn-nav" disabled>الآية التالية</button>
+            </div>
+            
+            <button id="record-btn" class="btn" disabled>ابدأ القراءة</button>
+            
+            <div id="status" class="status">جاري التهيئة...</div>
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <!-- صفحة التسبيح -->
+    <div id="tasbeeh-page" class="card tasbeeh-page">
+        <h2>المسبحة الإلكترونية</h2>
         
-        <!-- قائمة اختيار السورة -->
-        <select id="surah-select" class="select-box">
-            <option value="">اختر السورة...</option>
+        <select id="zekr-select" class="select-box">
+            <option value="سبحان الله">سبحان الله</option>
+            <option value="الحمد لله">الحمد لله</option>
+            <option value="لا إله إلا الله">لا إله إلا الله</option>
+            <option value="الله أكبر">الله أكبر</option>
+            <option value="أستغفر الله العظيم">أستغفر الله العظيم</option>
+            <option value="اللهم صلّ وسلم على نبينا محمد">الصلاة على النبي</option>
         </select>
 
-        <!-- عرض نص الآية -->
-        <div id="ayah-display" class="ayah-box">اختر سورة للبدء</div>
+        <div id="tasbeeh-counter" class="counter-box">0</div>
 
-        <!-- أزرار التنقل بين الآيات -->
-        <div class="nav-controls">
-            <button id="prev-ayah-btn" class="btn-nav" disabled>الآية السابقة</button>
-            <button id="next-ayah-btn" class="btn-nav" disabled>الآية التالية</button>
+        <div class="tasbeeh-controls">
+            <button id="count-btn" class="btn-tasbeeh">تسبيح</button>
+            <button id="reset-btn" class="btn-reset">إعادة ضبط</button>
         </div>
-        
-        <!-- زر تسجيل الصوت -->
-        <button id="record-btn" class="btn" disabled>ابدأ القراءة</button>
-        
-        <div id="status" class="status">جاري تهيئة نموذج الذكاء الاصطناعي...</div>
-        <div id="result" class="result"></div>
+    </div>
+
+    <!-- نافذة معلومات السورة (Modal) -->
+    <div id="surah-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">معلومات السورة</h3>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="info-row">ترتيب السورة: <span id="modal-number">-</span></div>
+            <div class="info-row">عدد الآيات: <span id="modal-count">-</span></div>
+            <div class="info-row">نوع السورة: <span id="modal-type">-</span></div>
+        </div>
+    </div>
+
+    <!-- نافذة معلومات المطور (Modal) -->
+    <div id="developer-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>عن المطور</h3>
+                <button id="close-dev-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="info-row">تطبيق: <span>ترتيل قرآن</span></div>
+            <div class="info-row">المطور: <span>y8_dev</span></div>
+            <div class="info-row">الإصدار: <span>1.1.0</span></div>
+            <div class="info-row">الوصف: <span>تطبيق إسلامي لتلاوة وتسميع القرآن الكريم بالذكاء الاصطناعي مع مسبحة إلكترونية.</span></div>
+        </div>
+    </div>
+
+    <!-- شريط التنقل السفلي -->
+    <div class="bottom-nav">
+        <button id="nav-home" class="nav-item active">الرئيسية</button>
+        <button id="nav-tasbeeh" class="nav-item">تسبيح</button>
+        <div id="nav-indicator" class="nav-indicator"></div>
     </div>
 
     <script type="module" src="app.js"></script>
