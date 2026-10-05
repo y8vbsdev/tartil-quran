@@ -11,6 +11,10 @@ let audioChunks = [];
 let isRecording = false;
 let audioStream = null;
 
+// الوضع الحالي: 'reading' أو 'recitation'
+let currentAppMode = 'reading'; 
+let micSensitivity = 0.6; // قيمة حساسية الصوت التلقائية
+
 const surahInfo = [
     { name: "الفاتحة", type: "مكية" }, { name: "البقرة", type: "مدنية" }, { name: "آل عمران", type: "مدنية" },
     { name: "النساء", type: "مدنية" }, { name: "المائدة", type: "مدنية" }, { name: "الأنعام", type: "مكية" },
@@ -18,7 +22,7 @@ const surahInfo = [
     { name: "يونس", type: "مكية" }, { name: "هود", type: "مكية" }, { name: "يوسف", type: "مكية" },
     { name: "الرعد", type: "مدنية" }, { name: "إبراهيم", type: "مكية" }, { name: "الحجر", type: "مكية" },
     { name: "النحل", type: "مكية" }, { name: "الإسراء", type: "مكية" }, { name: "الكهف", type: "مكية" },
-    { name: "مريم", type: "مكية" }, { name: "طه", type: "مكية" }, { name: "الأنبيائ", type: "مكية" },
+    { name: "مريم", type: "مكية" }, { name: "طه", type: "مكية" }, { name: "الأنبياء", type: "مكية" },
     { name: "الحج", type: "مدنية" }, { name: "المؤمنون", type: "مكية" }, { name: "النور", type: "مدنية" },
     { name: "الفرقان", type: "مكية" }, { name: "الشعراء", type: "مكية" }, { name: "النمل", type: "مكية" },
     { name: "القصص", type: "مكية" }, { name: "العنكبوت", type: "مكية" }, { name: "الروم", type: "مكية" },
@@ -54,22 +58,34 @@ const surahInfo = [
 
 // العناصر
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
-const developerBtn = document.getElementById('developer-btn');
+const topSettingsBtn = document.getElementById('top-settings-btn');
 const developerModal = document.getElementById('developer-modal');
 const closeDevModalBtn = document.getElementById('close-dev-modal-btn');
+const openDevModalBtn = document.getElementById('open-dev-modal-btn');
 
+// الصفحات
 const homePage = document.getElementById('home-page');
 const tasbeehPage = document.getElementById('tasbeeh-page');
+const settingsPage = document.getElementById('settings-page');
+
+// أزرار التنقل السفلي
 const navHome = document.getElementById('nav-home');
 const navTasbeeh = document.getElementById('nav-tasbeeh');
+const navSettings = document.getElementById('nav-settings');
 const navIndicator = document.getElementById('nav-indicator');
 
+// عناصر القراءة والتسميع
 const surahListView = document.getElementById('surah-list-view');
 const surahListContainer = document.getElementById('surah-list');
 const quranView = document.getElementById('quran-view');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const currentSurahTitle = document.getElementById('current-surah-title');
 
+const modeReadingBtn = document.getElementById('mode-reading-btn');
+const modeRecitationBtn = document.getElementById('mode-recitation-btn');
+const revealBtn = document.getElementById('reveal-btn');
+
+// النافذة المنبثقة للقرآن
 const surahModal = document.getElementById('surah-modal');
 const closeModalBtn = document.getElementById('close-modal-btn');
 const modalTitle = document.getElementById('modal-title');
@@ -84,15 +100,25 @@ const resultText = document.getElementById('result');
 const prevBtn = document.getElementById('prev-ayah-btn');
 const nextBtn = document.getElementById('next-ayah-btn');
 
+// المسبحة
 const zekrSelect = document.getElementById('zekr-select');
 const tasbeehCounterDisplay = document.getElementById('tasbeeh-counter');
 const countBtn = document.getElementById('count-btn');
 const resetBtn = document.getElementById('reset-btn');
 
+// عناصر الإعدادات
+const darkModeSwitch = document.getElementById('dark-mode-switch');
+const fontSizeRange = document.getElementById('font-size-range');
+const fontSizeVal = document.getElementById('font-size-val');
+const vibrationSwitch = document.getElementById('vibration-switch');
+const resetAllTasbeehBtn = document.getElementById('reset-all-tasbeeh-btn');
+const micSensRange = document.getElementById('mic-sens-range');
+const micSensVal = document.getElementById('mic-sens-val');
+
 let tasbeehCount = 0;
 
 async function init() {
-    loadSavedTheme();
+    loadSettings();
 
     try {
         const response = await fetch('quran.json');
@@ -108,12 +134,12 @@ async function init() {
 
         renderSurahList();
 
-        statusText.innerText = "جاري تحميل نموذج الذكاء الاصطناعي...";
+        statusText.innerText = "جاري تحميل نموذج الذكاء الاصطناعي للتسميع...";
         transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny', {
             quantized: true
         });
         
-        statusText.innerText = "جاهز للقراءة وتسميع التلاوة";
+        statusText.innerText = "جاهز بالقراءة والتسميع";
 
     } catch (err) {
         console.error(err);
@@ -125,58 +151,195 @@ async function init() {
 }
 
 // ==========================================
-// الوضع الداكن والفاتح (Theme Switcher)
+// التبديل بين وضع القراءة ووضع التسميع
 // ==========================================
 
-themeToggleBtn.addEventListener('click', () => {
-    document.body.classList.toggle('dark-theme');
-    const isDark = document.body.classList.contains('dark-theme');
-    
+modeReadingBtn.addEventListener('click', () => setMode('reading'));
+modeRecitationBtn.addEventListener('click', () => setMode('recitation'));
+
+function setMode(mode) {
+    currentAppMode = mode;
+    if (mode === 'reading') {
+        modeReadingBtn.classList.add('active');
+        modeRecitationBtn.classList.remove('active');
+        ayahDisplay.classList.remove('hidden-text');
+        recordBtn.style.display = 'none';
+        revealBtn.style.display = 'none';
+        statusText.innerText = "وضع القراءة المباشرة";
+        resultText.innerText = "";
+    } else {
+        modeRecitationBtn.classList.add('active');
+        modeReadingBtn.classList.remove('active');
+        ayahDisplay.classList.add('hidden-text');
+        recordBtn.style.display = 'block';
+        revealBtn.style.display = 'block';
+        statusText.innerText = transcriber ? "وضع التسميع - اضغط ابدأ للتلاوة" : "جاري تجهيز التسميع...";
+    }
+}
+
+revealBtn.addEventListener('click', () => {
+    ayahDisplay.classList.toggle('hidden-text');
+});
+
+// ==========================================
+// التنقل بين الصفحات
+// ==========================================
+
+function switchPage(pageElement, activeNavBtn) {
+    [homePage, tasbeehPage, settingsPage].forEach(p => p.classList.remove('active-page'));
+    [navHome, navTasbeeh, navSettings].forEach(n => n.classList.remove('active'));
+
+    pageElement.classList.add('active-page');
+    activeNavBtn.classList.add('active');
+    updateNavIndicator(activeNavBtn);
+}
+
+navHome.addEventListener('click', () => switchPage(homePage, navHome));
+navTasbeeh.addEventListener('click', () => switchPage(tasbeehPage, navTasbeeh));
+navSettings.addEventListener('click', () => switchPage(settingsPage, navSettings));
+topSettingsBtn.addEventListener('click', () => switchPage(settingsPage, navSettings));
+
+function updateNavIndicator(activeBtn) {
+    navIndicator.style.width = `${activeBtn.offsetWidth}px`;
+    navIndicator.style.left = `${activeBtn.offsetLeft}px`;
+}
+
+window.addEventListener('resize', () => {
+    const activeBtn = document.querySelector('.nav-item.active');
+    if (activeBtn) updateNavIndicator(activeBtn);
+});
+
+// ==========================================
+// إدارة الإعدادات
+// ==========================================
+
+function loadSettings() {
+    // 1. الثيم الداكن
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme === 'dark';
+    document.body.classList.toggle('dark-theme', isDark);
+    darkModeSwitch.checked = isDark;
+    themeToggleBtn.innerText = isDark ? "☀️ الأبيض" : "🌙 الأسود";
+
+    // 2. حجم الخط
+    const savedFontSize = localStorage.getItem('ayahFontSize') || '22';
+    document.documentElement.style.setProperty('--ayah-font-size', `${savedFontSize}px`);
+    fontSizeRange.value = savedFontSize;
+    fontSizeVal.innerText = savedFontSize;
+
+    // 3. الاهتزاز
+    const savedVibration = localStorage.getItem('vibrationEnabled');
+    vibrationSwitch.checked = savedVibration !== 'false';
+
+    // 4. حساسية الصوت / الميكروفون
+    const savedSens = localStorage.getItem('micSensitivity') || '0.6';
+    micSensitivity = parseFloat(savedSens);
+    micSensRange.value = savedSens;
+    micSensVal.innerText = savedSens;
+}
+
+// حساسية المايك
+micSensRange.addEventListener('input', (e) => {
+    const val = e.target.value;
+    micSensVal.innerText = val;
+    micSensitivity = parseFloat(val);
+    localStorage.setItem('micSensitivity', val);
+});
+
+darkModeSwitch.addEventListener('change', (e) => {
+    const isDark = e.target.checked;
+    document.body.classList.toggle('dark-theme', isDark);
     themeToggleBtn.innerText = isDark ? "☀️ الأبيض" : "🌙 الأسود";
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
 });
 
-function loadSavedTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-theme');
-        themeToggleBtn.innerText = "☀️ الأبيض";
-    } else {
-        document.body.classList.remove('dark-theme');
-        themeToggleBtn.innerText = "🌙 الأسود";
+themeToggleBtn.addEventListener('click', () => {
+    darkModeSwitch.checked = !darkModeSwitch.checked;
+    darkModeSwitch.dispatchEvent(new Event('change'));
+});
+
+fontSizeRange.addEventListener('input', (e) => {
+    const size = e.target.value;
+    fontSizeVal.innerText = size;
+    document.documentElement.style.setProperty('--ayah-font-size', `${size}px`);
+    localStorage.setItem('ayahFontSize', size);
+});
+
+vibrationSwitch.addEventListener('change', (e) => {
+    localStorage.setItem('vibrationEnabled', e.target.checked);
+});
+
+resetAllTasbeehBtn.addEventListener('click', () => {
+    if (confirm("هل أنت تأكد من تصفير أعداد كافة الأذكار والمسبحة؟")) {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('tasbeeh_')) {
+                localStorage.removeItem(key);
+            }
+        });
+        loadTasbeehCount();
+        alert("تم إعادة تصفير كافة الأعداد بنجاح!");
     }
-}
+});
 
 // ==========================================
 // نافذة المطور
 // ==========================================
 
-developerBtn.addEventListener('click', () => {
-    developerModal.classList.add('active');
-});
-
-closeDevModalBtn.addEventListener('click', () => {
-    developerModal.classList.remove('active');
-});
-
+openDevModalBtn.addEventListener('click', () => developerModal.classList.add('active'));
+closeDevModalBtn.addEventListener('click', () => developerModal.classList.remove('active'));
 developerModal.addEventListener('click', (e) => {
     if (e.target === developerModal) developerModal.classList.remove('active');
 });
 
 // ==========================================
-// عرض قائمة السور والمعلومات
+// المسبحة (Tasbeeh)
+// ==========================================
+
+countBtn.addEventListener('click', () => {
+    tasbeehCount++;
+    updateTasbeehDisplay();
+    saveTasbeehCount();
+
+    if (vibrationSwitch.checked && navigator.vibrate) {
+        navigator.vibrate(40);
+    }
+});
+
+resetBtn.addEventListener('click', () => {
+    tasbeehCount = 0;
+    updateTasbeehDisplay();
+    saveTasbeehCount();
+});
+
+zekrSelect.addEventListener('change', () => loadTasbeehCount());
+
+function updateTasbeehDisplay() {
+    tasbeehCounterDisplay.innerText = tasbeehCount;
+}
+
+function saveTasbeehCount() {
+    const selectedZekr = zekrSelect.value;
+    localStorage.setItem(`tasbeeh_${selectedZekr}`, tasbeehCount);
+}
+
+function loadTasbeehCount() {
+    const selectedZekr = zekrSelect.value;
+    const savedCount = localStorage.getItem(`tasbeeh_${selectedZekr}`);
+    tasbeehCount = savedCount ? parseInt(savedCount, 10) : 0;
+    updateTasbeehDisplay();
+}
+
+// ==========================================
+// عرض السور والقراءة/التسميع
 // ==========================================
 
 function renderSurahList() {
     surahListContainer.innerHTML = "";
-    
     if (!quranData || quranData.length === 0) return;
 
     const availableChapters = new Set();
     quranData.forEach(item => {
-        if (item && item.chapter) {
-            availableChapters.add(Number(item.chapter));
-        }
+        if (item && item.chapter) availableChapters.add(Number(item.chapter));
     });
 
     Array.from(availableChapters).sort((a, b) => a - b).forEach(chapNum => {
@@ -226,12 +389,10 @@ function renderSurahList() {
 
 function showSurahDetails(chapNum, info) {
     const ayahsInSurah = quranData.filter(item => Number(item.chapter) === Number(chapNum));
-    
     modalTitle.innerText = `سورة ${info.name}`;
     modalNumber.innerText = chapNum;
     modalCount.innerText = ayahsInSurah.length;
     modalType.innerText = info.type;
-
     surahModal.classList.add('active');
 }
 
@@ -249,11 +410,11 @@ function openSurah(chapNum, name) {
     quranView.style.display = 'block';
     resultText.innerText = "";
 
+    setMode('reading');
     showCurrentAyah();
 
     if (transcriber) {
         recordBtn.disabled = false;
-        statusText.innerText = "جاهز للقراءة والتسميع";
     }
 }
 
@@ -274,7 +435,6 @@ function showCurrentAyah() {
             ayahDisplay.innerText = "تعذر قراءة نص الآية";
         }
     }
-
     updateNavButtons();
 }
 
@@ -288,6 +448,9 @@ prevBtn.addEventListener('click', () => {
         currentIndex--;
         showCurrentAyah();
         resultText.innerText = "";
+        if (currentAppMode === 'recitation') {
+            ayahDisplay.classList.add('hidden-text');
+        }
     }
 });
 
@@ -296,6 +459,9 @@ nextBtn.addEventListener('click', () => {
         currentIndex++;
         showCurrentAyah();
         resultText.innerText = "";
+        if (currentAppMode === 'recitation') {
+            ayahDisplay.classList.add('hidden-text');
+        }
     }
 });
 
@@ -323,7 +489,7 @@ async function startRecording() {
         isRecording = true;
         recordBtn.innerText = "إيقاف وتسجيل التلاوة";
         recordBtn.classList.add('recording');
-        statusText.innerText = "جاري التسجيل الان...";
+        statusText.innerText = "جاري الاستماع إليك الان...";
     } catch (err) {
         console.error("تعذر الوصول للميكروفون:", err);
         statusText.innerText = "يرجى السماح باستخدام الميكروفون";
@@ -333,16 +499,14 @@ async function startRecording() {
 function stopRecording() {
     if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
-        
         if (audioStream) {
             audioStream.getTracks().forEach(track => track.stop());
             audioStream = null;
         }
-
         isRecording = false;
-        recordBtn.innerText = "ابدأ القراءة";
+        recordBtn.innerText = "ابدأ التسميع الصوتي";
         recordBtn.classList.remove('recording');
-        statusText.innerText = "جاري تحليل الصوت وتصحيح التلاوة...";
+        statusText.innerText = "جاري تحليل التسميع بالذكاء الاصطناعي...";
     }
 }
 
@@ -356,7 +520,7 @@ async function processAudio() {
             task: 'transcribe',
             repetition_penalty: 1.2,
             no_repeat_ngram_size: 3,
-            no_speech_threshold: 0.6
+            no_speech_threshold: micSensitivity // استخدام درجة حساسية المايك المضبوطة من الإعدادات
         });
 
         let transcribedText = output.text.trim();
@@ -366,9 +530,10 @@ async function processAudio() {
 
         const currentAyah = ayahDisplay.innerText.replace(/\(\d+\)/g, "").trim();
         if (cleanText(transcribedText) === cleanText(currentAyah)) {
-            statusText.innerText = "✅ التلاوة صحيحة أحسنت!";
+            statusText.innerText = "✅ التسميع صحيح! أحسنت بارك الله فيك";
+            ayahDisplay.classList.remove('hidden-text'); // إظهار الآية تلقائياً عند الإجابة الصحيحة
         } else {
-            statusText.innerText = "⚠️ يوجد اختلاف بين القراءة والنص الأصلي";
+            statusText.innerText = "⚠️️ هناك اختلاف في التسميع، راجع الآية وحاول مرة أخرى";
         }
     } catch (err) {
         console.error("خطأ أثناء تحليل الصوت:", err);
@@ -386,64 +551,6 @@ function cleanText(text) {
 
 function removeRepetitions(text) {
     return text.replace(/\b(\w+)( \1)+\b/gi, '$1');
-}
-
-// الشريط السفلي والخط المتحرك
-function updateNavIndicator(activeBtn) {
-    navIndicator.style.width = `${activeBtn.offsetWidth}px`;
-    navIndicator.style.left = `${activeBtn.offsetLeft}px`;
-}
-
-navHome.addEventListener('click', () => {
-    homePage.style.display = 'block';
-    tasbeehPage.style.display = 'none';
-    navHome.classList.add('active');
-    navTasbeeh.classList.remove('active');
-    updateNavIndicator(navHome);
-});
-
-navTasbeeh.addEventListener('click', () => {
-    homePage.style.display = 'none';
-    tasbeehPage.style.display = 'block';
-    navTasbeeh.classList.add('active');
-    navHome.classList.remove('active');
-    updateNavIndicator(navTasbeeh);
-});
-
-window.addEventListener('resize', () => {
-    const activeBtn = document.querySelector('.nav-item.active');
-    if (activeBtn) updateNavIndicator(activeBtn);
-});
-
-// المسبحة
-countBtn.addEventListener('click', () => {
-    tasbeehCount++;
-    updateTasbeehDisplay();
-    saveTasbeehCount();
-});
-
-resetBtn.addEventListener('click', () => {
-    tasbeehCount = 0;
-    updateTasbeehDisplay();
-    saveTasbeehCount();
-});
-
-zekrSelect.addEventListener('change', () => loadTasbeehCount());
-
-function updateTasbeehDisplay() {
-    tasbeehCounterDisplay.innerText = tasbeehCount;
-}
-
-function saveTasbeehCount() {
-    const selectedZekr = zekrSelect.value;
-    localStorage.setItem(`tasbeeh_${selectedZekr}`, tasbeehCount);
-}
-
-function loadTasbeehCount() {
-    const selectedZekr = zekrSelect.value;
-    const savedCount = localStorage.getItem(`tasbeeh_${selectedZekr}`);
-    tasbeehCount = savedCount ? parseInt(savedCount, 10) : 0;
-    updateTasbeehDisplay();
 }
 
 init();

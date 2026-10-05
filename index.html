@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ترتيل القرآن</title>
+    <title>ترتيل قرآن</title>
     <style>
         :root {
             --bg-color: #f1f5f9;
@@ -17,9 +17,9 @@
             --primary-hover: #1d4ed8;
             --counter-bg: #0f172a;
             --counter-text: #38bdf8;
+            --ayah-font-size: 22px;
         }
 
-        /* متغيرات الوضع الداكن (Dark Theme) */
         body.dark-theme {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -37,14 +37,16 @@
         * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; transition: background-color 0.3s, color 0.3s; }
         body { background: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; padding-top: 80px; padding-bottom: 80px; }
         
-        /* الشريط العلوي Top Header Bar */
+        /* الشريط العلوي */
         .top-bar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 1000; }
         .app-title { font-size: 18px; font-weight: bold; color: var(--primary); margin: 0; }
-        .top-actions { display: flex; gap: 10px; align-items: center; }
-        .icon-btn { background: var(--item-bg); border: 1px solid var(--border-color); color: var(--text-color); font-size: 16px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .top-actions { display: flex; gap: 8px; align-items: center; }
+        .icon-btn { background: var(--item-bg); border: 1px solid var(--border-color); color: var(--text-color); font-size: 14px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 5px; }
         .icon-btn:hover { background: var(--item-hover); }
 
-        .card { background: var(--card-bg); width: 100%; max-width: 500px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        .card { background: var(--card-bg); width: 100%; max-width: 500px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; display: none; }
+        .card.active-page { display: block; }
+
         h1, h2 { color: var(--text-color); font-size: 22px; margin-bottom: 20px; margin-top: 0; }
         
         /* قائمة السور */
@@ -52,7 +54,6 @@
         .surah-item { background: var(--item-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px; font-size: 16px; font-weight: 600; color: var(--text-color); display: flex; justify-content: space-between; align-items: center; position: relative; }
         .surah-info-clickable { flex: 1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         
-        /* قائمة الخيارات المنسدلة */
         .menu-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--sub-text); padding: 4px 10px; border-radius: 6px; }
         .menu-btn:hover { background: var(--item-hover); color: var(--text-color); }
         .dropdown-menu { display: none; position: absolute; left: 10px; top: 45px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10; width: 150px; text-align: right; overflow: hidden; }
@@ -60,7 +61,12 @@
         .dropdown-item { padding: 10px 14px; font-size: 14px; color: var(--text-color); cursor: pointer; }
         .dropdown-item:hover { background: var(--item-hover); color: var(--primary); }
 
-        /* النوافذ المنبثقة Modals */
+        /* تبويب الأوضاع (قراءة / تسميع) */
+        .mode-toggle-container { display: flex; background: var(--item-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 4px; margin-bottom: 15px; }
+        .mode-btn { flex: 1; border: none; background: none; padding: 10px; font-size: 15px; font-weight: bold; color: var(--sub-text); border-radius: 8px; cursor: pointer; }
+        .mode-btn.active { background: var(--primary); color: white; }
+
+        /* النوافذ المنبثقة */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
         .modal-content { background: var(--card-bg); color: var(--text-color); width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; text-align: right; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); animation: popIn 0.2s ease-out; }
@@ -74,7 +80,10 @@
         /* القراءة والتسميع */
         .quran-view { display: none; }
         .back-btn { background: var(--item-hover); color: var(--text-color); border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 15px; display: inline-block; }
-        .ayah-box { background: var(--item-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 15px; font-size: 22px; font-weight: bold; color: var(--text-color); line-height: 1.8; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+        .ayah-box { background: var(--item-bg); border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 15px; font-size: var(--ayah-font-size); font-weight: bold; color: var(--text-color); line-height: 1.8; min-height: 100px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .ayah-box.hidden-text { color: transparent; text-shadow: 0 0 12px rgba(0,0,0,0.2); user-select: none; }
+        .ayah-box.hidden-text::after { content: "🙈 النص مخفي للتسميع (اقرأ من ذاكرتك)"; position: absolute; color: var(--sub-text); font-size: 14px; text-shadow: none; font-weight: normal; }
+        
         .nav-controls { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-nav { background: var(--item-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; flex: 1; }
         .btn-nav:hover { background: var(--item-hover); }
@@ -87,7 +96,6 @@
         .result { margin-top: 10px; font-size: 14px; color: var(--sub-text); }
 
         /* المسبحة */
-        .tasbeeh-page { display: none; }
         .select-box { width: 100%; padding: 12px; font-size: 16px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 15px; outline: none; background: var(--card-bg); color: var(--text-color); cursor: pointer; }
         .counter-box { background: var(--counter-bg); color: var(--counter-text); font-size: 48px; font-weight: bold; border-radius: 12px; padding: 15px; margin-bottom: 15px; font-family: monospace; }
         .tasbeeh-controls { display: flex; gap: 10px; }
@@ -96,9 +104,27 @@
         .btn-reset { background: #ef4444; color: white; border: none; padding: 16px; font-size: 14px; font-weight: bold; border-radius: 10px; cursor: pointer; flex: 1; }
         .btn-reset:hover { background: #dc2626; }
 
-        /* شريط التنقل السفلي والخط */
+        /* الإعدادات */
+        .setting-group { text-align: right; margin-bottom: 20px; background: var(--item-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; }
+        .setting-group-title { font-size: 15px; font-weight: bold; color: var(--primary); margin-bottom: 12px; display: block; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .setting-item:last-child { margin-bottom: 0; }
+        .setting-label { font-size: 14px; font-weight: 600; color: var(--text-color); }
+        
+        .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        .range-slider { width: 120px; }
+        .btn-danger-action { background: #ef4444; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; }
+        .btn-danger-action:hover { background: #dc2626; }
+
+        /* شريط التنقل السفلي */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 10px rgba(0,0,0,0.03); z-index: 1000; }
-        .nav-item { border: none; background: none; font-size: 15px; font-weight: bold; color: var(--sub-text); cursor: pointer; padding: 10px 20px; border-radius: 8px; flex: 1; height: 100%; z-index: 1; }
+        .nav-item { border: none; background: none; font-size: 14px; font-weight: bold; color: var(--sub-text); cursor: pointer; padding: 10px 0; border-radius: 8px; flex: 1; height: 100%; z-index: 1; }
         .nav-item.active { color: var(--primary); }
         .nav-indicator { position: absolute; bottom: 0; height: 4px; background: var(--primary); border-radius: 4px 4px 0 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
@@ -110,12 +136,12 @@
         <h1 class="app-title">ترتيل قرآن</h1>
         <div class="top-actions">
             <button id="theme-toggle-btn" class="icon-btn">🌙 الأسود</button>
-            <button id="developer-btn" class="icon-btn">👨‍💻 المطور</button>
+            <button id="top-settings-btn" class="icon-btn">⚙️ الإعدادات</button>
         </div>
     </header>
 
     <!-- الرئيسية -->
-    <div id="home-page" class="card">
+    <div id="home-page" class="card active-page">
         <div id="surah-list-view">
             <h1>الرئيسية - قائمة السور</h1>
             <div id="surah-list" class="surah-list">
@@ -126,6 +152,13 @@
         <div id="quran-view" class="quran-view">
             <button id="back-to-list-btn" class="back-btn">← العودة لقائمة السور</button>
             <h2 id="current-surah-title">سورة</h2>
+
+            <!-- أزرار اختيار الوضع -->
+            <div class="mode-toggle-container">
+                <button id="mode-reading-btn" class="mode-btn active">📖 وضع القراءة</button>
+                <button id="mode-recitation-btn" class="mode-btn">🎙️ وضع التسميع</button>
+            </div>
+
             <div id="ayah-display" class="ayah-box"></div>
 
             <div class="nav-controls">
@@ -133,7 +166,8 @@
                 <button id="next-ayah-btn" class="btn-nav" disabled>الآية التالية</button>
             </div>
             
-            <button id="record-btn" class="btn" disabled>ابدأ القراءة</button>
+            <button id="record-btn" class="btn" disabled style="display: none;">ابدأ التسميع الصوتي</button>
+            <button id="reveal-btn" class="btn" style="display: none; background: #64748b; margin-top: 8px;">إظهار النص للأهمية</button>
             
             <div id="status" class="status">جاري التهيئة...</div>
             <div id="result" class="result"></div>
@@ -141,7 +175,7 @@
     </div>
 
     <!-- صفحة التسبيح -->
-    <div id="tasbeeh-page" class="card tasbeeh-page">
+    <div id="tasbeeh-page" class="card">
         <h2>المسبحة الإلكترونية</h2>
         
         <select id="zekr-select" class="select-box">
@@ -161,7 +195,68 @@
         </div>
     </div>
 
-    <!-- نافذة معلومات السورة (Modal) -->
+    <!-- صفحة الإعدادات -->
+    <div id="settings-page" class="card">
+        <h2>الإعدادات</h2>
+
+        <!-- إعدادات الميكروفون والتسميع -->
+        <div class="setting-group">
+            <span class="setting-group-title">إعدادات الصوت والميكروفون</span>
+            
+            <div class="setting-item">
+                <span class="setting-label">حساسية المايك (التسميع): <span id="mic-sens-val">0.6</span></span>
+                <input type="range" id="mic-sens-range" class="range-slider" min="0.1" max="0.9" step="0.1" value="0.6">
+            </div>
+        </div>
+
+        <!-- المظهر والخط -->
+        <div class="setting-group">
+            <span class="setting-group-title">المظهر والخط</span>
+            
+            <div class="setting-item">
+                <span class="setting-label">الوضع الداكن (Dark Mode)</span>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-switch">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-item">
+                <span class="setting-label">حجم خط الآيات (<span id="font-size-val">22</span>px)</span>
+                <input type="range" id="font-size-range" class="range-slider" min="16" max="36" value="22">
+            </div>
+        </div>
+
+        <!-- التفاعل والتنبيهات -->
+        <div class="setting-group">
+            <span class="setting-group-title">التفاعل والاهتزاز</span>
+            
+            <div class="setting-item">
+                <span class="setting-label">الاهتزاز عند التسبيح</span>
+                <label class="switch">
+                    <input type="checkbox" id="vibration-switch" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- البيانات والحفظ -->
+        <div class="setting-group">
+            <span class="setting-group-title">إدارة البيانات</span>
+            <button id="reset-all-tasbeeh-btn" class="btn-danger-action">تصفير كافة أعداد المسبحة</button>
+        </div>
+
+        <!-- معلومات المطور -->
+        <div class="setting-group">
+            <span class="setting-group-title">المعلومات</span>
+            <div class="setting-item">
+                <span class="setting-label">عن المطور والتطبيق</span>
+                <button id="open-dev-modal-btn" class="icon-btn">👨‍💻 عرض التفاصيل</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة معلومات السورة -->
     <div id="surah-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -174,17 +269,17 @@
         </div>
     </div>
 
-    <!-- نافذة معلومات المطور (Modal) -->
+    <!-- نافذة معلومات المطور -->
     <div id="developer-modal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>عن المطور</h3>
+                <h3>عن المطور والتطبيق</h3>
                 <button id="close-dev-modal-btn" class="close-btn">&times;</button>
             </div>
             <div class="info-row">تطبيق: <span>ترتيل قرآن</span></div>
             <div class="info-row">المطور: <span>y8_dev</span></div>
-            <div class="info-row">الإصدار: <span>1.1.0</span></div>
-            <div class="info-row">الوصف: <span>تطبيق إسلامي لتلاوة وتسميع القرآن الكريم بالذكاء الاصطناعي مع مسبحة إلكترونية.</span></div>
+            <div class="info-row">الإصدار: <span>1.2.0</span></div>
+            <div class="info-row">الوصف: <span>تطبيق إسلامي لتلاوة وتسميع القرآن الكريم بالذكاء الاصطناعي مع التحكم بحساسية الميكروفون ومسبحة إلكترونية.</span></div>
         </div>
     </div>
 
@@ -192,6 +287,7 @@
     <div class="bottom-nav">
         <button id="nav-home" class="nav-item active">الرئيسية</button>
         <button id="nav-tasbeeh" class="nav-item">تسبيح</button>
+        <button id="nav-settings" class="nav-item">الإعدادات</button>
         <div id="nav-indicator" class="nav-indicator"></div>
     </div>
 
