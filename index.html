@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ترتيل قرآن</title>
+    <link rel="manifest" href="manifest.json">
     <style>
         :root {
             --bg-color: #f1f5f9;
@@ -130,7 +131,15 @@
     </style>
 </head>
 <body>
-
+    <script>
+     if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+         navigator.serviceWorker.register('./sw.js')
+         .then((reg) => console.log('Service Worker تم تسجيله بنجاح:', reg.scope))
+         .catch((err) => console.error('فشل تسجيل Service Worker:', err));
+        });
+       }
+    </script>
     <!-- الشريط العلوي -->
     <header class="top-bar">
         <h1 class="app-title">ترتيل قرآن</h1>

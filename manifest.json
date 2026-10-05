@@ -1,0 +1,24 @@
+{
+  "short_name": "ترتيل",
+  "name": "ترتيل قرآن",
+"icons": [
+  {
+    "src": "./icon.png",
+    "type": "image/png",
+    "sizes": "192x192"
+  },
+  {
+    "src": "./icon.png",
+    "type": "image/png",
+    "sizes": "512x512"
+  }
+ ],
+
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar"
+}
